@@ -1,359 +1,364 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// ── Tool definitions sent to the Realtime API ──────────────────────────────
-const TOOLS = [
+// ─── Config ───────────────────────────────────────────────────────────────
+const DURATION = 60;
+const API_KEY = import.meta.env.VITE_GEMINI_KEY;
+const MODEL = "gemini-2.0-flash";
+
+// ─── Safari scenes ────────────────────────────────────────────────────────
+const SCENES = [
   {
-    type: "function",
-    name: "highlight_animal",
-    description:
-      "Highlight a specific animal or object in the image and show a fun emoji reaction on screen to reward the child.",
-    parameters: {
-      type: "object",
-      properties: {
-        animal: {
-          type: "string",
-          description: "Name of the animal or object to highlight (e.g. 'elephant', 'parrot')",
-        },
-        emoji: {
-          type: "string",
-          description: "A fun emoji to display as a reaction (e.g. '🦁', '🌟', '🎉')",
-        },
-        message: {
-          type: "string",
-          description: "Short celebratory message to show on screen (max 8 words)",
-        },
-      },
-      required: ["animal", "emoji", "message"],
-    },
+    url: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1200&q=85",
+    title: "The Golden Savanna",
+    description: "vast golden grasslands with elephants, giraffes, zebras and colourful birds under a bright African sky",
   },
   {
-    type: "function",
-    name: "show_fun_fact",
-    description: "Display a short fun fact card on screen about an animal or topic from the image.",
-    parameters: {
-      type: "object",
-      properties: {
-        fact: {
-          type: "string",
-          description: "A short, child-friendly fun fact (1-2 sentences max)",
-        },
-        emoji: { type: "string", description: "Relevant emoji" },
-      },
-      required: ["fact", "emoji"],
-    },
+    url: "https://images.unsplash.com/photo-1534476478164-b15bbd7ca1ab?w=1200&q=85",
+    title: "Lion Kingdom",
+    description: "a majestic lion resting on a rock in the African savanna at golden hour",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1551009175-8a68da93d5f9?w=1200&q=85",
+    title: "Elephant Family",
+    description: "a family of elephants walking through the African bush with baby elephants",
   },
 ];
 
-// ── Scene image ───────────────────────────────────────────────────────────
-const SCENE = {
-  url: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=900&q=80",
-  alt: "African savanna with animals",
-};
-
-const DURATION = 60;
-
 function fmt(s) {
-  const m = Math.floor(s / 60).toString().padStart(2, "0");
-  const ss = (s % 60).toString().padStart(2, "0");
-  return `${m}:${ss}`;
+  return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 }
 
+function parseToolCall(text) {
+  const h = text.match(/\[HIGHLIGHT:([^:]+):([^:]+):([^\]]+)\]/);
+  const f = text.match(/\[FACT:([^:]+):([^\]]+)\]/);
+  const clean = text.replace(/\[HIGHLIGHT:[^\]]+\]/g, "").replace(/\[FACT:[^\]]+\]/g, "").trim();
+  let tool = null;
+  if (h) tool = { type: "highlight", animal: h[1], emoji: h[2], message: h[3] };
+  else if (f) tool = { type: "fact", emoji: f[1], fact: f[2] };
+  return { clean, tool };
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────
 export default function App() {
-  const [apiKey, setApiKey] = useState(localStorage.getItem("oai_key") || "");
-  const [phase, setPhase] = useState("idle");
+  const [scene] = useState(SCENES[0]);
+  const [phase, setPhase] = useState("idle"); // idle | active | ended
   const [timeLeft, setTimeLeft] = useState(DURATION);
   const [highlight, setHighlight] = useState(null);
   const [funFact, setFunFact] = useState(null);
   const [subtitle, setSubtitle] = useState("");
-  const [error, setError] = useState("");
   const [speaking, setSpeaking] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [error, setError] = useState("");
+  const [history, setHistory] = useState([]);
+  const [zaraMood, setZaraMood] = useState("happy"); // happy | excited | thinking
 
-  const pcRef = useRef(null);
-  const dcRef = useRef(null);
-  const audioRef = useRef(null);
   const timerRef = useRef(null);
-  const highlightTimer = useRef(null);
-  const factTimer = useRef(null);
+  const recogRef = useRef(null);
+  const endedRef = useRef(false);
+  const speakingRef = useRef(false);
+  const historyRef = useRef([]);
 
-  const saveKey = (k) => {
-    setApiKey(k);
-    localStorage.setItem("oai_key", k);
-  };
+  // Keep historyRef in sync
+  useEffect(() => { historyRef.current = history; }, [history]);
 
-  const handleToolCall = useCallback((name, args) => {
-    if (name === "highlight_animal") {
-      setHighlight(args);
-      clearTimeout(highlightTimer.current);
-      highlightTimer.current = setTimeout(() => setHighlight(null), 4000);
-    } else if (name === "show_fun_fact") {
-      setFunFact(args);
-      clearTimeout(factTimer.current);
-      factTimer.current = setTimeout(() => setFunFact(null), 6000);
-    }
+  // ── Tool overlays ──────────────────────────────────────────────────────
+  const showHighlight = useCallback((data) => {
+    setHighlight(data);
+    setTimeout(() => setHighlight(null), 4500);
   }, []);
 
-  const handleMessage = useCallback(
-    (evt) => {
-      let msg;
-      try { msg = JSON.parse(evt.data); } catch { return; }
+  const showFact = useCallback((data) => {
+    setFunFact(data);
+    setTimeout(() => setFunFact(null), 6000);
+  }, []);
 
-      if (msg.type === "response.audio_transcript.delta") {
-        setSubtitle((p) => (p + (msg.delta || "")).slice(-120));
-      }
-      if (msg.type === "response.audio_transcript.done") {
-        setTimeout(() => setSubtitle(""), 2000);
-      }
-      if (msg.type === "response.audio.delta") setSpeaking(true);
-      if (msg.type === "response.audio.done") setSpeaking(false);
+  // ── Browser TTS ───────────────────────────────────────────────────────
+  const speak = useCallback((text, onDone) => {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.92;
+    utter.pitch = 1.25;
+    utter.volume = 1;
+    const voices = window.speechSynthesis.getVoices();
+    const v = voices.find(v => v.name.includes("Samantha")) ||
+      voices.find(v => v.name.includes("Google UK English Female")) ||
+      voices.find(v => v.name.includes("Microsoft Zira")) ||
+      voices.find(v => v.lang === "en-US") || voices[0];
+    if (v) utter.voice = v;
+    utter.onstart = () => { setSpeaking(true); speakingRef.current = true; setZaraMood("excited"); };
+    utter.onend = () => { setSpeaking(false); speakingRef.current = false; setZaraMood("happy"); if (onDone) onDone(); };
+    utter.onerror = () => { setSpeaking(false); speakingRef.current = false; if (onDone) onDone(); };
+    window.speechSynthesis.speak(utter);
+  }, []);
 
-      if (msg.type === "response.function_call_arguments.done") {
+  // ── Gemini API ────────────────────────────────────────────────────────
+  const askGemini = useCallback(async (userMsg) => {
+    const systemPrompt = `You are Zara, the most fun and friendly AI safari guide for young children aged 4-8.
+You are looking at: ${scene.description}.
+Rules:
+- VERY short responses — max 2 sentences only
+- Always end with a simple fun question
+- Use excitement: "Wow!", "Oh amazing!", "Yes!", "Great job!"
+- Embed tool commands naturally:
+  [HIGHLIGHT:objectname:emoji:short fun message] — use when talking about something in the image
+  [FACT:emoji:one amazing fact under 12 words] — use once or twice
+- Examples: "Wow, I can see a giraffe! [HIGHLIGHT:giraffe:🦒:Giraffes have super long necks!] Can you make a giraffe neck with your arms?"
+- Be warm, silly, encouraging. Children love you!`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [...historyRef.current, { role: "user", parts: [{ text: userMsg }] }],
+          generationConfig: { maxOutputTokens: 100, temperature: 1.0 },
+        }),
+      }
+    );
+    if (!res.ok) { const e = await res.json(); throw new Error(e?.error?.message || "API error"); }
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Wow, what do you see?";
+  }, [scene]);
+
+  // ── Speech recognition ────────────────────────────────────────────────
+  const startListening = useCallback(() => {
+    if (endedRef.current || speakingRef.current) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setError("Please use Google Chrome for voice!"); return; }
+
+    const r = new SR();
+    recogRef.current = r;
+    r.lang = "en-US";
+    r.continuous = false;
+    r.interimResults = true;
+
+    r.onstart = () => { setListening(true); setZaraMood("thinking"); };
+    r.onend = () => setListening(false);
+
+    r.onresult = async (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
+      setSubtitle("You: " + transcript);
+
+      if (e.results[e.results.length - 1].isFinal) {
+        r.stop();
+        if (endedRef.current) return;
         try {
-          const args = JSON.parse(msg.arguments);
-          handleToolCall(msg.name, args);
-          const result = {
-            type: "conversation.item.create",
-            item: {
-              type: "function_call_output",
-              call_id: msg.call_id,
-              output: JSON.stringify({ success: true }),
-            },
-          };
-          dcRef.current?.send(JSON.stringify(result));
-          dcRef.current?.send(JSON.stringify({ type: "response.create" }));
-        } catch {}
-      }
-    },
-    [handleToolCall]
-  );
+          const newHistory = [...historyRef.current,
+            { role: "user", parts: [{ text: transcript }] }];
+          const reply = await askGemini(transcript);
+          const { clean, tool } = parseToolCall(reply);
 
+          if (tool?.type === "highlight") showHighlight(tool);
+          if (tool?.type === "fact") showFact(tool);
+
+          setSubtitle("Zara: " + clean);
+          const updated = [...newHistory, { role: "model", parts: [{ text: clean }] }];
+          setHistory(updated);
+          historyRef.current = updated;
+
+          speak(clean, () => {
+            if (!endedRef.current) setTimeout(() => startListening(), 600);
+          });
+        } catch (err) { setError(err.message); }
+      }
+    };
+
+    r.onerror = (e) => {
+      setListening(false);
+      if (e.error !== "no-speech" && e.error !== "aborted" && !endedRef.current && !speakingRef.current) {
+        setTimeout(() => startListening(), 1200);
+      }
+    };
+    r.start();
+  }, [askGemini, speak, showHighlight, showFact]);
+
+  // ── End session ───────────────────────────────────────────────────────
   const endSession = useCallback(() => {
+    endedRef.current = true;
     clearInterval(timerRef.current);
-    pcRef.current?.close();
-    pcRef.current = null;
-    dcRef.current = null;
-    if (audioRef.current) audioRef.current.srcObject = null;
+    window.speechSynthesis.cancel();
+    recogRef.current?.stop();
     setPhase("ended");
     setSpeaking(false);
+    setListening(false);
   }, []);
 
+  // ── Start session ─────────────────────────────────────────────────────
   const startSession = useCallback(async () => {
-    if (!apiKey) return;
     setError("");
-    setPhase("connecting");
+    endedRef.current = false;
+    setHistory([]);
+    historyRef.current = [];
+    setPhase("active");
     setTimeLeft(DURATION);
     setHighlight(null);
     setFunFact(null);
     setSubtitle("");
 
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => { if (t <= 1) { endSession(); return 0; } return t - 1; });
+    }, 1000);
+
     try {
-      const tokenRes = await fetch("https://api.openai.com/v1/realtime/sessions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-realtime-preview-2024-12-17",
-          voice: "shimmer",
-          instructions: `You are Zara, a super-friendly and enthusiastic AI companion talking to a young child (age 4-8). 
-You are looking at a beautiful image of an African savanna with elephants, giraffes, zebras, and colourful birds.
-START the conversation immediately and warmly — say hello and ask the child what animal they see first.
-Keep your sentences SHORT and SIMPLE. Use lots of excitement and encouragement.
-Ask easy questions like "Can you spot the giraffe?", "What sound does an elephant make?", "What colour is that bird?".
-Use the highlight_animal tool whenever the child mentions or you talk about a specific animal — it creates a fun animation on screen.
-Use the show_fun_fact tool once or twice to share a cool fact.
-Keep the conversation going for about 1 minute total. Be warm, playful, and encouraging.`,
-          tools: TOOLS,
-          tool_choice: "auto",
-          input_audio_transcription: { model: "whisper-1" },
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 600,
-          },
-        }),
-      });
-
-      if (!tokenRes.ok) {
-        const e = await tokenRes.json();
-        throw new Error(e?.error?.message || "Failed to create session");
-      }
-      const { client_secret } = await tokenRes.json();
-
-      const pc = new RTCPeerConnection();
-      pcRef.current = pc;
-
-      const audio = new Audio();
-      audio.autoplay = true;
-      audioRef.current = audio;
-      pc.ontrack = (e) => { audio.srcObject = e.streams[0]; };
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-
-      const dc = pc.createDataChannel("oai-events");
-      dcRef.current = dc;
-      dc.addEventListener("message", handleMessage);
-      dc.addEventListener("open", () => {
-        dc.send(JSON.stringify({ type: "response.create" }));
-      });
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      const sdpRes = await fetch(
-        `https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${client_secret.value}`,
-            "Content-Type": "application/sdp",
-          },
-          body: offer.sdp,
-        }
-      );
-      if (!sdpRes.ok) throw new Error("SDP exchange failed");
-      const answer = { type: "answer", sdp: await sdpRes.text() };
-      await pc.setRemoteDescription(answer);
-
-      setPhase("active");
-
-      timerRef.current = setInterval(() => {
-        setTimeLeft((t) => {
-          if (t <= 1) { endSession(); return 0; }
-          return t - 1;
-        });
-      }, 1000);
+      const opening = await askGemini("Start! Greet the child super enthusiastically and ask what they see in the image. Use a HIGHLIGHT tool call right away.");
+      const { clean, tool } = parseToolCall(opening);
+      if (tool?.type === "highlight") showHighlight(tool);
+      if (tool?.type === "fact") showFact(tool);
+      setSubtitle("Zara: " + clean);
+      const h = [{ role: "model", parts: [{ text: clean }] }];
+      setHistory(h); historyRef.current = h;
+      speak(clean, () => { if (!endedRef.current) startListening(); });
     } catch (err) {
       setError(err.message);
       setPhase("idle");
+      clearInterval(timerRef.current);
     }
-  }, [apiKey, handleMessage, endSession]);
+  }, [askGemini, speak, startListening, endSession, showHighlight, showFact]);
 
   const reset = () => {
-    setPhase("idle");
-    setTimeLeft(DURATION);
-    setHighlight(null);
-    setFunFact(null);
-    setSubtitle("");
+    endedRef.current = false;
+    setPhase("idle"); setTimeLeft(DURATION);
+    setHighlight(null); setFunFact(null);
+    setSubtitle(""); setError(""); setHistory([]);
+    historyRef.current = [];
   };
 
-  useEffect(() => () => endSession(), []);
+  useEffect(() => {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    return () => { clearInterval(timerRef.current); window.speechSynthesis.cancel(); recogRef.current?.stop(); };
+  }, []);
 
-  const timerPct = (timeLeft / DURATION) * 100;
+  const pct = (timeLeft / DURATION) * 100;
   const timerColor = timeLeft > 30 ? "#4ade80" : timeLeft > 10 ? "#fbbf24" : "#f87171";
+  const zaraEmoji = zaraMood === "excited" ? "🤩" : zaraMood === "thinking" ? "🤔" : "😊";
 
   return (
     <div className="app">
-      {!apiKey && (
-        <div className="gate">
-          <div className="gate-box">
-            <div className="gate-icon">🔑</div>
-            <h2>Enter your OpenAI API Key</h2>
-            <p>Your key stays in your browser only.</p>
-            <input
-              type="password"
-              placeholder="sk-..."
-              onKeyDown={(e) => { if (e.key === "Enter") saveKey(e.target.value.trim()); }}
-              className="key-input"
-            />
-            <button
-              className="key-btn"
-              onClick={(e) => saveKey(e.target.closest(".gate-box").querySelector("input").value.trim())}
-            >
-              Let's Go! 🚀
-            </button>
+      {/* ── Decorative blobs ── */}
+      <div className="blob blob-1" />
+      <div className="blob blob-2" />
+      <div className="blob blob-3" />
+
+      {/* ── Header ── */}
+      <header className="header">
+        <div className="logo-wrap">
+          <span className="logo-icon">🦁</span>
+          <div>
+            <span className="logo-text">Safari Talk</span>
+            <span className="logo-sub">AI Adventure for Kids</span>
           </div>
         </div>
-      )}
 
-      {apiKey && (
-        <>
-          <header className="header">
-            <span className="logo">🌍 Safari Talk</span>
-            {phase === "active" && (
-              <div className="timer-wrap">
-                <svg className="timer-svg" viewBox="0 0 44 44">
-                  <circle cx="22" cy="22" r="18" fill="none" stroke="#ffffff33" strokeWidth="4" />
-                  <circle
-                    cx="22" cy="22" r="18" fill="none"
-                    stroke={timerColor} strokeWidth="4"
-                    strokeDasharray={`${2 * Math.PI * 18}`}
-                    strokeDashoffset={`${2 * Math.PI * 18 * (1 - timerPct / 100)}`}
-                    strokeLinecap="round" transform="rotate(-90 22 22)"
-                    style={{ transition: "stroke-dashoffset 1s linear, stroke 0.5s" }}
-                  />
-                </svg>
-                <span className="timer-text" style={{ color: timerColor }}>{fmt(timeLeft)}</span>
-              </div>
-            )}
-          </header>
-
-          <main className="main">
-            <div className="scene-wrap">
-              <img src={SCENE.url} alt={SCENE.alt} className="scene-img" />
-
-              {highlight && (
-                <div className="highlight-overlay">
-                  <div className="highlight-burst">
-                    <span className="h-emoji">{highlight.emoji}</span>
-                    <span className="h-msg">{highlight.message}</span>
-                    <span className="h-animal">✨ {highlight.animal} ✨</span>
-                  </div>
-                </div>
-              )}
-
-              {funFact && (
-                <div className="fact-card">
-                  <span className="fact-emoji">{funFact.emoji}</span>
-                  <p className="fact-text">{funFact.fact}</p>
-                </div>
-              )}
-
-              {speaking && (
-                <div className="wave-bar">
-                  {[...Array(7)].map((_, i) => (
-                    <span key={i} className="wave-dot" style={{ animationDelay: `${i * 0.1}s` }} />
-                  ))}
-                  <span className="wave-label">Zara is talking…</span>
-                </div>
-              )}
-
-              {subtitle && <div className="subtitle">{subtitle}</div>}
+        <div className="header-right">
+          {phase === "active" && listening && (
+            <div className="listen-pill">
+              <span className="listen-dot" />
+              Listening…
             </div>
-
-            <div className="controls">
-              {phase === "idle" && (
-                <button className="btn-start" onClick={startSession}>🎙️ Start Safari Chat!</button>
-              )}
-              {phase === "connecting" && (
-                <button className="btn-start loading" disabled>
-                  <span className="spin">🌀</span> Connecting…
-                </button>
-              )}
-              {phase === "active" && (
-                <button className="btn-end" onClick={endSession}>⏹ End Chat</button>
-              )}
-              {phase === "ended" && (
-                <div className="ended-box">
-                  <p className="ended-msg">🎉 Great job exploring the safari! 🦁</p>
-                  <button className="btn-start" onClick={reset}>🔄 Play Again!</button>
-                </div>
-              )}
-              {error && <p className="error-msg">⚠️ {error}</p>}
+          )}
+          {phase === "active" && (
+            <div className="timer-wrap">
+              <svg viewBox="0 0 56 56" className="timer-svg">
+                <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+                <circle cx="28" cy="28" r="24" fill="none"
+                  stroke={timerColor} strokeWidth="5"
+                  strokeDasharray={`${2 * Math.PI * 24}`}
+                  strokeDashoffset={`${2 * Math.PI * 24 * (1 - pct / 100)}`}
+                  strokeLinecap="round" transform="rotate(-90 28 28)"
+                  style={{ transition: "stroke-dashoffset 1s linear, stroke 0.5s" }}
+                />
+              </svg>
+              <span className="timer-num" style={{ color: timerColor }}>{fmt(timeLeft)}</span>
             </div>
+          )}
+        </div>
+      </header>
 
-            {phase === "idle" && (
-              <div className="instructions">
-                <span>🦒</span>
-                <p>Look at the animals! Press the button and chat with Zara about what you see.</p>
-                <span>🐘</span>
+      {/* ── Main ── */}
+      <main className="main">
+
+        {/* ── Zara avatar ── */}
+        <div className={`zara-avatar ${speaking ? "zara-speaking" : ""} ${listening ? "zara-listening" : ""}`}>
+          <div className="zara-face">{zaraEmoji}</div>
+          <div className="zara-name">Zara</div>
+          {speaking && (
+            <div className="sound-waves">
+              {[...Array(4)].map((_, i) => <span key={i} className="wave" style={{ animationDelay: `${i * 0.15}s` }} />)}
+            </div>
+          )}
+        </div>
+
+        {/* ── Scene image ── */}
+        <div className="scene-wrap">
+          <div className="scene-label">{scene.title}</div>
+          <img src={scene.url} alt={scene.title} className="scene-img" />
+
+          {/* Highlight overlay */}
+          {highlight && (
+            <div className="hl-overlay">
+              <div className="hl-card">
+                <div className="hl-emoji">{highlight.emoji}</div>
+                <div className="hl-msg">{highlight.message}</div>
+                <div className="hl-name">✨ {highlight.animal} ✨</div>
               </div>
-            )}
-          </main>
-        </>
-      )}
+            </div>
+          )}
+
+          {/* Fun fact */}
+          {funFact && (
+            <div className="fact-card">
+              <span className="fact-emoji">{funFact.emoji}</span>
+              <span className="fact-text">{funFact.fact}</span>
+            </div>
+          )}
+
+          {/* Subtitle */}
+          {subtitle && (
+            <div className={`subtitle ${subtitle.startsWith("You:") ? "subtitle-user" : "subtitle-zara"}`}>
+              {subtitle}
+            </div>
+          )}
+        </div>
+
+        {/* ── Controls ── */}
+        <div className="controls">
+          {phase === "idle" && (
+            <button className="btn-start" onClick={startSession}>
+              <span className="btn-icon">🎙️</span>
+              <span>Start Safari Adventure!</span>
+            </button>
+          )}
+          {phase === "active" && (
+            <button className="btn-end" onClick={endSession}>
+              <span className="btn-icon">⏹</span>
+              <span>End Adventure</span>
+            </button>
+          )}
+          {phase === "ended" && (
+            <div className="ended-wrap">
+              <div className="ended-stars">⭐⭐⭐</div>
+              <p className="ended-title">Amazing Explorer!</p>
+              <p className="ended-sub">You chatted with Zara about the safari! 🦁</p>
+              <button className="btn-start" onClick={reset}>🔄 Play Again!</button>
+            </div>
+          )}
+          {error && <div className="error-box">⚠️ {error}</div>}
+        </div>
+
+        {/* ── Idle hint ── */}
+        {phase === "idle" && (
+          <div className="hint-row">
+            <div className="hint-chip">🎙️ Speak freely</div>
+            <div className="hint-chip">🦒 Ask about animals</div>
+            <div className="hint-chip">⏱️ 60 seconds</div>
+            <div className="hint-chip">🌟 Fun surprises!</div>
+          </div>
+        )}
+
+      </main>
     </div>
   );
 }
