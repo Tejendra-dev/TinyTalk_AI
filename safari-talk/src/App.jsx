@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ─── Config ───────────────────────────────────────────────────────────────
 const DURATION = 60;
 const API_KEY = import.meta.env.VITE_GEMINI_KEY;
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-1.5-flash";
 
 // ─── Safari scenes ────────────────────────────────────────────────────────
 const SCENES = [
