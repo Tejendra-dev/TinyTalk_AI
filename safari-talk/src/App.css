@@ -105,3 +105,31 @@ body{font-family:'Nunito',sans-serif;min-height:100vh;background:#071a10;color:w
   .zara-face{width:52px;height:52px;font-size:1.55rem}
   .scene-wrap{border-radius:14px;height:min(56vw,280px)}
 }
+
+/* ── Subtitle placeholder — prevents layout jump ── */
+.subtitle-placeholder {
+  width: 100%;
+  max-width: 820px;
+  height: 50px;
+  flex-shrink: 0;
+}
+
+/* ── Fact strip — always reserves space, no layout jump ── */
+.fact-strip {
+  width: 100%;
+  max-width: 820px;
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.35);
+  border-radius: 12px;
+  padding: 0.55rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+  min-height: 48px;
+  transition: opacity 0.3s ease;
+}
+.fact-visible { opacity: 1; }
+.fact-hidden { opacity: 0; pointer-events: none; }
+.fact-emoji { font-size: 1.4rem; flex-shrink: 0; }
+.fact-strip-text { font-size: clamp(0.78rem,2.3vw,0.9rem); font-weight: 800; color: #fef9c3; line-height: 1.4; }

@@ -23,7 +23,6 @@ const ANIMALS = [
       "Would you like to be a giraffe for a day?",
       "Look how tall they are! Can you stretch your arms up as high as you can?",
       "What do you think giraffes eat way up there at the top of trees?",
-      "If you were as tall as a giraffe, what would you look at first?",
     ]
   },
   {
@@ -44,7 +43,6 @@ const ANIMALS = [
       "Look how big their ears are! Why do you think elephants have such big ears?",
       "Would you like to ride on an elephant one day?",
       "Can you make a trumpet sound like an elephant?",
-      "How do you think the baby elephant feels walking with its mummy?",
     ]
   },
   {
@@ -56,7 +54,7 @@ const ANIMALS = [
       "A lion's roar is so loud you can hear it from 8 kilometres away!",
       "Lions sleep for up to 20 hours a day — they love to rest!",
       "A group of lions is called a pride — they live together like a big family!",
-      "The male lion has that big fluffy mane to look strong and scary to other lions!",
+      "The male lion's big fluffy mane makes him look strong to other lions!",
       "Lions are the only cats that live in groups — all other cats live alone!",
       "There are only about 20,000 lions left in the wild!",
     ],
@@ -64,7 +62,6 @@ const ANIMALS = [
       "Can you see the lion's big fluffy mane?",
       "Can you roar like a lion? Let me hear your best lion roar!",
       "Do you think the lion is friendly or scary?",
-      "Would you be brave enough to stand near a lion?",
       "What do you think a lion eats for breakfast?",
     ]
   },
@@ -73,19 +70,17 @@ const ANIMALS = [
     image: "/animals/wildebeest.png",
     description: "a huge herd of wildebeest running together across the African savanna",
     facts: [
-      "Every year, about 1.5 million wildebeest run together in the Great Migration!",
+      "Every year about 1.5 million wildebeest run together in the Great Migration!",
       "The Great Migration is the biggest animal journey on the entire planet Earth!",
       "Wildebeest run at speeds of up to 80 kilometres per hour!",
       "Baby wildebeest can run just 6 minutes after they are born!",
       "Wildebeest travel about 800 kilometres every year looking for fresh grass!",
-      "Wildebeest look like a mix between a cow, a horse, and a buffalo!",
       "About 1.5 million wildebeest live in the Serengeti!",
     ],
     topics: [
-      "Wow look at all those animals running! Can you count how many you see?",
-      "They are all running together — why do you think animals travel in big groups?",
+      "Wow look at all those animals running! Can you count how many?",
+      "They all run together — why do you think animals travel in big groups?",
       "If you could run as fast as a wildebeest where would you run to?",
-      "Can you make the sound of all those animals running with your feet?",
     ]
   },
   {
@@ -94,17 +89,15 @@ const ANIMALS = [
     description: "a zebra with beautiful black and white stripes standing in the dry golden African grasslands",
     facts: [
       "Every zebra has unique stripes — no two zebras look the same, just like fingerprints!",
-      "Scientists are still not sure if a zebra is white with black stripes or black with white stripes!",
+      "Scientists still don't know if a zebra is white with black stripes or black with white stripes!",
       "Zebras can run up to 65 kilometres per hour to escape from lions!",
       "Baby zebras recognise their mummy just by looking at her stripes!",
-      "Zebras sleep standing up just like horses!",
       "A group of zebras is called a dazzle — their stripes confuse lions and make them dizzy!",
       "There are about 500,000 zebras living in Africa right now!",
     ],
     topics: [
-      "Look at those amazing black and white stripes! How many stripes can you count?",
+      "Look at those black and white stripes! How many can you count?",
       "Do you think zebras are more like horses or donkeys?",
-      "If you could have any animal's pattern on your shirt, would you pick zebra stripes?",
       "Why do you think zebras have black and white stripes?",
     ]
   },
@@ -130,7 +123,9 @@ export default function App() {
   const [phase, setPhase] = useState("idle");
   const [timeLeft, setTimeLeft] = useState(DURATION);
   const [currentFact, setCurrentFact] = useState(null);
-  const [subtitle, setSubtitle] = useState("");
+  // Two separate subtitle states to avoid confusion
+  const [tejendraSays, setTejendraSays] = useState("");
+  const [childSays, setChildSays] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState("");
@@ -144,6 +139,7 @@ export default function App() {
   const speakingRef = useRef(false);
   const historyRef = useRef([]);
   const animalRef = useRef(animal);
+  const listeningRef = useRef(false);
 
   useEffect(() => { historyRef.current = history; }, [history]);
   useEffect(() => { animalRef.current = animal; }, [animal]);
@@ -153,44 +149,46 @@ export default function App() {
     setSessionFacts(prev => prev.includes(factText) ? prev : [...prev, factText]);
   }, []);
 
-  // ── MALE VOICE — properly forced ─────────────────────────────────────
+  // ── MALE INDIAN VOICE ─────────────────────────────────────────────────
   const speak = useCallback((text, onDone) => {
     window.speechSynthesis.cancel();
 
-    // Wait for voices to load then speak
     const doSpeak = () => {
       const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 0.9;
-      utter.pitch = 1.35; // higher = more childish/fun
+      utter.rate = 0.88;
+      utter.pitch = 1.4;
       utter.volume = 1;
 
       const voices = window.speechSynthesis.getVoices();
 
-      // Priority list for male voices
-      const maleVoice =
+      // Try Indian English male voices first, then any male English voice
+      const voice =
+        voices.find(v => v.lang === "en-IN" && v.name.toLowerCase().includes("male")) ||
+        voices.find(v => v.lang === "en-IN") ||
         voices.find(v => v.name === "Google UK English Male") ||
-        voices.find(v => v.name === "Microsoft David - English (United States)") ||
-        voices.find(v => v.name === "Microsoft David Desktop - English (United States)") ||
-        voices.find(v => v.name.includes("David")) ||
+        voices.find(v => v.name.includes("Microsoft David")) ||
+        voices.find(v => v.name.includes("David") && v.lang.startsWith("en")) ||
         voices.find(v => v.name.includes("Daniel") && v.lang.startsWith("en")) ||
-        voices.find(v => v.name.includes("Male") && v.lang.startsWith("en")) ||
-        voices.find(v => v.name.includes("James") && v.lang.startsWith("en")) ||
-        voices.find(v => v.name.includes("Alex")) ||
-        voices.find(v => v.lang === "en-GB" && !v.name.toLowerCase().includes("female")) ||
-        voices.find(v => v.lang === "en-US") ||
-        voices[0];
+        voices.find(v => v.name.includes("Rishi")) ||
+        voices.find(v => v.name.includes("Mohan")) ||
+        voices.find(v => v.name.toLowerCase().includes("male") && v.lang.startsWith("en")) ||
+        voices.find(v => v.lang.startsWith("en"));
 
-      if (maleVoice) utter.voice = maleVoice;
+      if (voice) utter.voice = voice;
 
       utter.onstart = () => { setSpeaking(true); speakingRef.current = true; setMood("excited"); };
-      utter.onend = () => { setSpeaking(false); speakingRef.current = false; setMood("happy"); if (onDone) onDone(); };
-      utter.onerror = () => { setSpeaking(false); speakingRef.current = false; if (onDone) onDone(); };
-
+      utter.onend = () => {
+        setSpeaking(false); speakingRef.current = false; setMood("happy");
+        if (onDone) onDone();
+      };
+      utter.onerror = () => {
+        setSpeaking(false); speakingRef.current = false;
+        if (onDone) onDone();
+      };
       window.speechSynthesis.speak(utter);
     };
 
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
+    if (window.speechSynthesis.getVoices().length > 0) {
       doSpeak();
     } else {
       window.speechSynthesis.onvoiceschanged = () => { doSpeak(); };
@@ -199,36 +197,36 @@ export default function App() {
 
   const askAI = useCallback(async (userMsg) => {
     const a = animalRef.current;
-    const systemPrompt = `You are Tejendra, an excited funny 10-year-old boy who LOVES animals, talking to a younger child aged 4-7.
+    const systemPrompt = `You are Tejendra, an excited funny 10-year-old Indian boy who LOVES animals, talking to a younger child aged 4-7.
 You are both looking at a picture of: ${a.description}.
 The animal is: ${a.name} ${a.emoji}
 
 YOUR STYLE:
 - Talk like an excited kid, NOT an adult or teacher
-- Simple words a 5 year old understands
+- Use simple words a 5 year old understands
 - Very enthusiastic: "Wow!", "Oh my god!", "No way!", "That is SO cool!", "Did you know!"
 - Max 2 short sentences per response
-- Only ONE question at the end, never multiple questions
-- NEVER say "great answer" or "that's a wonderful response" like a teacher
+- Only ONE question at the end, never two questions
+- NEVER say "great answer" or "wonderful" like a teacher
 
 HANDLING SHORT REPLIES:
-- If child says "yes", "yeah", "ok", "hmm", "no", "good", "nice", "wow" — just say "Cool!" and share next fun fact naturally
-- NEVER ask them to say more or explain more
-- Just keep flowing naturally like a real kid conversation
+- If child says "yes", "yeah", "ok", "hmm", "no", "good", "nice", "wow", "cool" — just say "Cool!" or "Wow!" and share next fun fact naturally
+- NEVER ask them to speak more or explain
+- Just keep the conversation flowing naturally like a real kid
 
-CONVERSATION FLOW for ${a.name}:
-1. First: point out the animal and ask if they can see it
-2. Then: ask if they'd like to BE that animal  
-3. Then: share a funny/cool fact
-4. Then: compare to something they know (humans, toys, houses)
-5. Then: share a wow number fact
-6. Then: ask a fun imagination question
-7. Then: share another surprising fact
+CONVERSATION FLOW:
+1. Point out the animal and ask if they can see it
+2. Ask if they'd like to BE that animal
+3. Share a funny cool fact
+4. Compare to something they know (humans, toys, houses)
+5. Share a wow number fact
+6. Ask a fun imagination question
+7. Share another surprising fact
 
-USE THIS for facts: [FACT:short fact under 15 words]
+FORMAT for facts: [FACT:short fact under 15 words]
 Example: "Oh my god giraffes are SO tall! [FACT:One giraffe equals 6 humans stacked on top!] If you were that tall what would you grab?"
 
-Facts about ${a.name} to use:
+Facts about ${a.name}:
 ${a.facts.join("\n")}
 
 Topics:
@@ -254,48 +252,56 @@ ${a.topics.join("\n")}`;
   }, []);
 
   const startListening = useCallback(() => {
-    if (endedRef.current || speakingRef.current) return;
+    if (endedRef.current || speakingRef.current || listeningRef.current) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setError("Please use Google Chrome for voice!"); return; }
 
     const r = new SR();
     recogRef.current = r;
-    r.lang = "en-US";
+    r.lang = "en-IN"; // Indian English — better for Indian accent
     r.continuous = false;
-    r.interimResults = true;
+    r.interimResults = false; // Only fire ONCE when done speaking — no jumping
     r.maxAlternatives = 1;
 
-    r.onstart = () => { setListening(true); setMood("thinking"); };
+    r.onstart = () => { setListening(true); listeningRef.current = true; setMood("thinking"); };
+
     r.onend = () => {
       setListening(false);
+      listeningRef.current = false;
+      // Restart only if not ended and not speaking
       if (!endedRef.current && !speakingRef.current) {
-        setTimeout(() => startListening(), 600);
+        setTimeout(() => startListening(), 800);
       }
     };
 
     r.onresult = async (e) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join("").trim();
-      setSubtitle("You: " + transcript);
-      if (e.results[e.results.length - 1].isFinal) {
-        r.stop();
-        if (endedRef.current || !transcript) return;
-        try {
-          const newHistory = [...historyRef.current, { role: "user", parts: [{ text: transcript }] }];
-          const reply = await askAI(transcript);
-          const { clean, fact } = parseFact(reply);
-          if (fact) showFact(fact);
-          setSubtitle("Tejendra: " + clean);
-          const updated = [...newHistory, { role: "model", parts: [{ text: clean }] }];
-          setHistory(updated); historyRef.current = updated;
-          speak(clean, () => { if (!endedRef.current) setTimeout(() => startListening(), 300); });
-        } catch (err) { setError(err.message); }
-      }
+      if (endedRef.current) return;
+      const transcript = e.results[0][0].transcript.trim();
+      if (!transcript) return;
+
+      setChildSays(transcript); // Show child's words in subtitle
+      listeningRef.current = false;
+
+      try {
+        const newHistory = [...historyRef.current, { role: "user", parts: [{ text: transcript }] }];
+        const reply = await askAI(transcript);
+        const { clean, fact } = parseFact(reply);
+        if (fact) showFact(fact);
+        setTejendraSays(clean); // Show Tejendra's words separately
+        setChildSays(""); // Clear child subtitle when Tejendra speaks
+        const updated = [...newHistory, { role: "model", parts: [{ text: clean }] }];
+        setHistory(updated); historyRef.current = updated;
+        speak(clean, () => {
+          if (!endedRef.current) setTimeout(() => startListening(), 400);
+        });
+      } catch (err) { setError(err.message); }
     };
 
     r.onerror = (e) => {
       setListening(false);
+      listeningRef.current = false;
       if (e.error !== "aborted" && !endedRef.current && !speakingRef.current) {
-        setTimeout(() => startListening(), 700);
+        setTimeout(() => startListening(), 800);
       }
     };
 
@@ -306,7 +312,8 @@ ${a.topics.join("\n")}`;
     endedRef.current = true;
     clearInterval(timerRef.current);
     window.speechSynthesis.cancel();
-    try { recogRef.current?.stop(); } catch (e) {}
+    listeningRef.current = false;
+    try { recogRef.current?.abort(); } catch (e) {}
     setPhase("ended"); setSpeaking(false); setListening(false);
   }, []);
 
@@ -314,16 +321,20 @@ ${a.topics.join("\n")}`;
     setError(""); endedRef.current = false;
     setHistory([]); historyRef.current = [];
     setPhase("active"); setTimeLeft(DURATION);
-    setCurrentFact(null); setSubtitle(""); setSessionFacts([]);
+    setCurrentFact(null);
+    setTejendraSays(""); setChildSays("");
+    setSessionFacts([]);
+
     timerRef.current = setInterval(() => {
       setTimeLeft(t => { if (t <= 1) { endSession(); return 0; } return t - 1; });
     }, 1000);
+
     try {
       const a = animalRef.current;
       const opening = await askAI(`Start! Say hello super excitedly, mention the ${a.name} in the picture, share one wow fact using [FACT:...], and ask ONE simple fun question.`);
       const { clean, fact } = parseFact(opening);
       if (fact) showFact(fact);
-      setSubtitle("Tejendra: " + clean);
+      setTejendraSays(clean);
       const h = [{ role: "model", parts: [{ text: clean }] }];
       setHistory(h); historyRef.current = h;
       speak(clean, () => { if (!endedRef.current) startListening(); });
@@ -335,20 +346,22 @@ ${a.topics.join("\n")}`;
     const next = pickAnimal(animal.name);
     setAnimal(next); animalRef.current = next;
     setPhase("idle"); setTimeLeft(DURATION);
-    setCurrentFact(null); setSubtitle(""); setError("");
-    setHistory([]); historyRef.current = []; setSessionFacts([]);
-    setMood("happy");
+    setCurrentFact(null);
+    setTejendraSays(""); setChildSays("");
+    setError(""); setHistory([]); historyRef.current = [];
+    setSessionFacts([]); setMood("happy");
+    listeningRef.current = false;
   };
 
   useEffect(() => {
-    // Preload voices
     const load = () => window.speechSynthesis.getVoices();
     load();
     window.speechSynthesis.onvoiceschanged = load;
     return () => {
       clearInterval(timerRef.current);
       window.speechSynthesis.cancel();
-      try { recogRef.current?.stop(); } catch (e) {}
+      listeningRef.current = false;
+      try { recogRef.current?.abort(); } catch (e) {}
     };
   }, []);
 
@@ -392,6 +405,7 @@ ${a.topics.join("\n")}`;
       </header>
 
       <main className="main">
+        {/* Tejendra avatar */}
         <div className={`zara-wrap ${speaking ? "is-speaking" : ""} ${listening ? "is-listening" : ""}`}>
           <div className="zara-face">{moodEmoji}</div>
           <span className="zara-name">Tejendra</span>
@@ -402,25 +416,36 @@ ${a.topics.join("\n")}`;
           )}
         </div>
 
-        {/* Animal image — fixed size, no overflow */}
+        {/* Animal image — fixed height */}
         <div className="scene-wrap">
           <div className="scene-label">{animal.emoji} {animal.name}</div>
           <img src={animal.image} alt={animal.name} className="scene-img" />
         </div>
 
-        {/* Subtitle below image */}
-        <div className={`subtitle-box ${subtitle.startsWith("You:") ? "sub-user" : subtitle ? "sub-tejendra" : "sub-idle"}`}>
-          <span className="sub-icon">{subtitle.startsWith("You:") ? "🧒" : "😄"}</span>
-          <span className="sub-text">{subtitle || `Press Start and chat with Tejendra about the ${animal.name}!`}</span>
+        {/* Tejendra subtitle — always visible, fixed height */}
+        <div className="subtitle-box sub-tejendra">
+          <span className="sub-icon">😄</span>
+          <span className="sub-text">
+            {tejendraSays || `Press Start and chat with Tejendra about the ${animal.name}!`}
+          </span>
         </div>
 
-        {/* Fact strip — EMOJI + TEXT ONLY, no image popup, no image thumb */}
-        {currentFact && (
-          <div className="fact-strip">
-            <span className="fact-emoji">{animal.emoji}</span>
-            <span className="fact-strip-text">✨ {currentFact}</span>
+        {/* Child subtitle — only shows when child is speaking */}
+        {childSays ? (
+          <div className="subtitle-box sub-user">
+            <span className="sub-icon">🧒</span>
+            <span className="sub-text">{childSays}</span>
           </div>
+        ) : (
+          /* Empty placeholder to prevent layout jump */
+          <div className="subtitle-placeholder" />
         )}
+
+        {/* Fact strip — always reserves space to prevent jumping */}
+        <div className={`fact-strip ${currentFact ? "fact-visible" : "fact-hidden"}`}>
+          <span className="fact-emoji">{animal.emoji}</span>
+          <span className="fact-strip-text">✨ {currentFact || "..."}</span>
+        </div>
 
         {/* End screen facts */}
         {phase === "ended" && sessionFacts.length > 0 && (
