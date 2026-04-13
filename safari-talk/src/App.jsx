@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ─── Config ───────────────────────────────────────────────────────────────
 const DURATION = 60;
 const API_KEY = import.meta.env.VITE_GROQ_KEY;
-const MODEL = "llama3-8b-8192";
+const MODEL = "llama-3.3-70b-versatile";
 
 // ─── Safari scenes ────────────────────────────────────────────────────────
 const SCENES = [
