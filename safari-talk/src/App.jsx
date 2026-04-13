@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── Config ───────────────────────────────────────────────────────────────
 const DURATION = 60;
-const API_KEY = import.meta.env.VITE_GEMINI_KEY;
-const MODEL = "gemini-1.5-flash-latest";
+const API_KEY = import.meta.env.VITE_GROQ_KEY;
+const MODEL = "llama3-8b-8192";
 
 // ─── Safari scenes ────────────────────────────────────────────────────────
 const SCENES = [
@@ -102,24 +102,29 @@ Rules:
 - Embed tool commands naturally:
   [HIGHLIGHT:objectname:emoji:short fun message] — use when talking about something in the image
   [FACT:emoji:one amazing fact under 12 words] — use once or twice
-- Examples: "Wow, I can see a giraffe! [HIGHLIGHT:giraffe:🦒:Giraffes have super long necks!] Can you make a giraffe neck with your arms?"
+- Examples: "Wow, I can see a jeep! [HIGHLIGHT:jeep:🚙:A safari jeep for adventures!] Can you pretend to drive?"
 - Be warm, silly, encouraging. Children love you!`;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [...historyRef.current, { role: "user", parts: [{ text: userMsg }] }],
-          generationConfig: { maxOutputTokens: 100, temperature: 1.0 },
-        }),
-      }
-    );
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...historyRef.current.map(h => ({
+        role: h.role === "model" ? "assistant" : "user",
+        content: h.parts[0].text
+      })),
+      { role: "user", content: userMsg }
+    ];
+
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({ model: MODEL, messages, max_tokens: 100, temperature: 1.0 }),
+    });
     if (!res.ok) { const e = await res.json(); throw new Error(e?.error?.message || "API error"); }
     const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Wow, what do you see?";
+    return data.choices?.[0]?.message?.content || "Wow, what do you see?";
   }, [scene]);
 
   // ── Speech recognition ────────────────────────────────────────────────
