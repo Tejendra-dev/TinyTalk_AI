@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ─── Config ───────────────────────────────────────────────────────────────
 const DURATION = 60;
 const API_KEY = import.meta.env.VITE_GROQ_KEY;
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "llama3-8b-8192";
 
 // ─── Safari scenes ────────────────────────────────────────────────────────
 const SCENES = [
@@ -320,12 +320,12 @@ Rules:
             </div>
           )}
 
-          {/* Subtitle */}
-          {subtitle && (
-            <div className={`subtitle ${subtitle.startsWith("You:") ? "subtitle-user" : "subtitle-zara"}`}>
-              {subtitle}
-            </div>
-          )}
+        </div>
+
+        {/* ── Subtitle BELOW image ── */}
+        <div className={`subtitle-box ${subtitle.startsWith("You:") ? "subtitle-user" : subtitle ? "subtitle-zara" : "subtitle-idle"}`}>
+          <span className="subtitle-avatar">{subtitle.startsWith("You:") ? "🧒" : "🦁"}</span>
+          <span className="subtitle-text">{subtitle || "Zara will start talking when you press the button!"}</span>
         </div>
 
         {/* ── Controls ── */}
