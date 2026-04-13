@@ -4,11 +4,9 @@ const DURATION = 60;
 const API_KEY = import.meta.env.VITE_GROQ_KEY;
 const MODEL = "llama-3.3-70b-versatile";
 
-// ── Your exact uploaded images served from /public/animals/ ───────────────
 const ANIMALS = [
   {
-    name: "Giraffe",
-    emoji: "🦒",
+    name: "Giraffe", emoji: "🦒",
     image: "/animals/giraffe.png",
     description: "two beautiful giraffes standing tall in the golden African savanna with mountains and acacia trees",
     facts: [
@@ -21,51 +19,49 @@ const ANIMALS = [
       "Baby giraffes can walk within just one hour of being born!",
     ],
     topics: [
-      "Can you see the giraffes in the image? How many can you count?",
+      "Can you see the giraffes? How many can you count?",
       "Would you like to be a giraffe for a day?",
       "Look how tall they are! Can you stretch your arms up as high as you can?",
       "What do you think giraffes eat way up there at the top of trees?",
-      "If you were as tall as a giraffe, what would you look at first from up there?",
+      "If you were as tall as a giraffe, what would you look at first?",
     ]
   },
   {
-    name: "Elephant",
-    emoji: "🐘",
+    name: "Elephant", emoji: "🐘",
     image: "/animals/elephant.png",
     description: "a mother elephant and baby elephant walking together in tall green African grass",
     facts: [
-      "Elephants are the largest land animals on Earth — bigger than any other animal that walks!",
-      "An elephant's brain weighs 11 pounds — it's the biggest brain of any land animal!",
-      "Elephants never forget! They remember friends and family for their whole lives.",
-      "Baby elephants are called calves and they weigh about 200 pounds at birth!",
+      "Elephants are the largest land animals on Earth!",
+      "An elephant's brain weighs 11 pounds — the biggest brain of any land animal!",
+      "Elephants never forget — they remember friends and family for their whole lives.",
+      "Baby elephants weigh about 200 pounds at birth!",
       "Elephants use their trunks like we use our hands — to grab, smell, and even hug!",
       "An elephant drinks about 50 gallons of water every single day!",
       "There are about 415,000 elephants living in Africa right now.",
     ],
     topics: [
       "Can you see the baby elephant and the mummy elephant?",
-      "Look how big their ears are! Do you know why elephants have such big ears?",
+      "Look how big their ears are! Why do you think elephants have such big ears?",
       "Would you like to ride on an elephant one day?",
       "Can you make a trumpet sound like an elephant?",
       "How do you think the baby elephant feels walking with its mummy?",
     ]
   },
   {
-    name: "Lion",
-    emoji: "🦁",
+    name: "Lion", emoji: "🦁",
     image: "/animals/lion.png",
     description: "a majestic male lion with a big golden mane standing proudly in tall golden African grass",
     facts: [
-      "Lions are called the King of the Jungle and they are the second biggest wild cat on Earth!",
-      "A lion's roar is so loud you can hear it from 8 kilometres away — that's very far!",
-      "Lions sleep for up to 20 hours a day — they love to rest more than anything!",
+      "Lions are called the King of the Jungle!",
+      "A lion's roar is so loud you can hear it from 8 kilometres away!",
+      "Lions sleep for up to 20 hours a day — they love to rest!",
       "A group of lions is called a pride — they live together like a big family!",
-      "The male lion has that big fluffy mane to make him look strong and scary to other lions!",
-      "Lions are the only cats that live together in groups — all other cats live alone!",
-      "There are only about 20,000 lions left in the wild — that's not very many!",
+      "The male lion has that big fluffy mane to look strong and scary to other lions!",
+      "Lions are the only cats that live in groups — all other cats live alone!",
+      "There are only about 20,000 lions left in the wild!",
     ],
     topics: [
-      "Wow look at that lion! Can you see his big fluffy mane?",
+      "Can you see the lion's big fluffy mane?",
       "Can you roar like a lion? Let me hear your best lion roar!",
       "Do you think the lion is friendly or scary?",
       "Would you be brave enough to stand near a lion?",
@@ -73,47 +69,43 @@ const ANIMALS = [
     ]
   },
   {
-    name: "Wildebeest",
-    emoji: "🐃",
+    name: "Wildebeest", emoji: "🐃",
     image: "/animals/wildebeest.png",
-    description: "a huge herd of wildebeest running together across the African savanna during the great migration",
+    description: "a huge herd of wildebeest running together across the African savanna",
     facts: [
-      "Every year, about 1.5 million wildebeest run together in what's called the Great Migration!",
+      "Every year, about 1.5 million wildebeest run together in the Great Migration!",
       "The Great Migration is the biggest animal journey on the entire planet Earth!",
-      "Wildebeest run at speeds of up to 80 kilometres per hour — that's super fast!",
-      "Baby wildebeest can run just 6 minutes after they are born — amazing right?",
-      "Wildebeest travel about 800 kilometres every year looking for fresh green grass!",
-      "Wildebeest look a bit like a mix between a cow, a horse, and a buffalo!",
-      "About 1.5 million wildebeest live in the Serengeti — that's a huge number!",
+      "Wildebeest run at speeds of up to 80 kilometres per hour!",
+      "Baby wildebeest can run just 6 minutes after they are born!",
+      "Wildebeest travel about 800 kilometres every year looking for fresh grass!",
+      "Wildebeest look like a mix between a cow, a horse, and a buffalo!",
+      "About 1.5 million wildebeest live in the Serengeti!",
     ],
     topics: [
-      "Wow look at all those animals running! Can you count how many you can see?",
-      "They are all running together! Why do you think animals travel in big groups?",
-      "Have you ever seen so many animals in one place?",
-      "If you could run as fast as a wildebeest, where would you run to?",
+      "Wow look at all those animals running! Can you count how many you see?",
+      "They are all running together — why do you think animals travel in big groups?",
+      "If you could run as fast as a wildebeest where would you run to?",
       "Can you make the sound of all those animals running with your feet?",
     ]
   },
   {
-    name: "Zebra",
-    emoji: "🦓",
+    name: "Zebra", emoji: "🦓",
     image: "/animals/zebra.png",
     description: "a zebra with beautiful black and white stripes standing in the dry golden African grasslands",
     facts: [
-      "Every single zebra has completely unique stripes — just like your fingerprints, no two are the same!",
-      "Scientists are still not 100 percent sure if a zebra is white with black stripes or black with white stripes!",
-      "Zebras can run up to 65 kilometres per hour to escape from lions and cheetahs!",
-      "Baby zebras can recognise their mummy just by looking at her stripes — like a name tag!",
-      "Zebras sleep standing up just like horses — they rarely lie down!",
-      "A group of zebras is called a dazzle — because their stripes confuse lions and make them dizzy!",
+      "Every zebra has unique stripes — no two zebras look the same, just like fingerprints!",
+      "Scientists are still not sure if a zebra is white with black stripes or black with white stripes!",
+      "Zebras can run up to 65 kilometres per hour to escape from lions!",
+      "Baby zebras recognise their mummy just by looking at her stripes!",
+      "Zebras sleep standing up just like horses!",
+      "A group of zebras is called a dazzle — their stripes confuse lions and make them dizzy!",
       "There are about 500,000 zebras living in Africa right now!",
     ],
     topics: [
       "Look at those amazing black and white stripes! How many stripes can you count?",
-      "Do you think zebras are more like horses or more like donkeys?",
-      "If you could have any animal's pattern on your clothes, would you pick zebra stripes?",
+      "Do you think zebras are more like horses or donkeys?",
+      "If you could have any animal's pattern on your shirt, would you pick zebra stripes?",
       "Why do you think zebras have black and white stripes?",
-      "Can you draw a zebra stripe pattern in the air with your finger?",
     ]
   },
 ];
@@ -161,67 +153,85 @@ export default function App() {
     setSessionFacts(prev => prev.includes(factText) ? prev : [...prev, factText]);
   }, []);
 
-  // ── Male childish voice ───────────────────────────────────────────────
+  // ── MALE VOICE — properly forced ─────────────────────────────────────
   const speak = useCallback((text, onDone) => {
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 0.88;
-    utter.pitch = 1.4;  // higher pitch = more childish/fun
-    utter.volume = 1;
+
+    // Wait for voices to load then speak
+    const doSpeak = () => {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 0.9;
+      utter.pitch = 1.35; // higher = more childish/fun
+      utter.volume = 1;
+
+      const voices = window.speechSynthesis.getVoices();
+
+      // Priority list for male voices
+      const maleVoice =
+        voices.find(v => v.name === "Google UK English Male") ||
+        voices.find(v => v.name === "Microsoft David - English (United States)") ||
+        voices.find(v => v.name === "Microsoft David Desktop - English (United States)") ||
+        voices.find(v => v.name.includes("David")) ||
+        voices.find(v => v.name.includes("Daniel") && v.lang.startsWith("en")) ||
+        voices.find(v => v.name.includes("Male") && v.lang.startsWith("en")) ||
+        voices.find(v => v.name.includes("James") && v.lang.startsWith("en")) ||
+        voices.find(v => v.name.includes("Alex")) ||
+        voices.find(v => v.lang === "en-GB" && !v.name.toLowerCase().includes("female")) ||
+        voices.find(v => v.lang === "en-US") ||
+        voices[0];
+
+      if (maleVoice) utter.voice = maleVoice;
+
+      utter.onstart = () => { setSpeaking(true); speakingRef.current = true; setMood("excited"); };
+      utter.onend = () => { setSpeaking(false); speakingRef.current = false; setMood("happy"); if (onDone) onDone(); };
+      utter.onerror = () => { setSpeaking(false); speakingRef.current = false; if (onDone) onDone(); };
+
+      window.speechSynthesis.speak(utter);
+    };
 
     const voices = window.speechSynthesis.getVoices();
-    // Try to find a male voice
-    const maleVoice =
-      voices.find(v => v.name.includes("Google UK English Male")) ||
-      voices.find(v => v.name.includes("Microsoft David")) ||
-      voices.find(v => v.name.includes("Daniel") && v.lang.startsWith("en")) ||
-      voices.find(v => v.name.toLowerCase().includes("male") && v.lang.startsWith("en")) ||
-      voices.find(v => v.lang === "en-US") ||
-      voices[0];
-    if (maleVoice) utter.voice = maleVoice;
-
-    utter.onstart = () => { setSpeaking(true); speakingRef.current = true; setMood("excited"); };
-    utter.onend = () => { setSpeaking(false); speakingRef.current = false; setMood("happy"); if (onDone) onDone(); };
-    utter.onerror = () => { setSpeaking(false); speakingRef.current = false; if (onDone) onDone(); };
-    window.speechSynthesis.speak(utter);
+    if (voices.length > 0) {
+      doSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => { doSpeak(); };
+    }
   }, []);
 
   const askAI = useCallback(async (userMsg) => {
     const a = animalRef.current;
-    const systemPrompt = `You are Tejendra, an excited and funny 10-year-old boy who LOVES animals and is talking to a younger child aged 4-7.
+    const systemPrompt = `You are Tejendra, an excited funny 10-year-old boy who LOVES animals, talking to a younger child aged 4-7.
 You are both looking at a picture of: ${a.description}.
+The animal is: ${a.name} ${a.emoji}
 
-YOUR PERSONALITY:
-- You talk like an excited kid, not an adult or teacher
-- Use simple words a 5 year old understands
-- Be VERY enthusiastic with lots of "Wow!", "Oh my god!", "Did you know!", "That is SO cool!", "No way!"
-- Ask simple fun questions one at a time
-- NEVER ask multiple questions at once — only ONE question per response
-- Keep each response to 2-3 short sentences maximum
+YOUR STYLE:
+- Talk like an excited kid, NOT an adult or teacher
+- Simple words a 5 year old understands
+- Very enthusiastic: "Wow!", "Oh my god!", "No way!", "That is SO cool!", "Did you know!"
+- Max 2 short sentences per response
+- Only ONE question at the end, never multiple questions
+- NEVER say "great answer" or "that's a wonderful response" like a teacher
 
 HANDLING SHORT REPLIES:
-- If child says "yes", "yeah", "ok", "hmm", "no", "good", "nice" — that is TOTALLY FINE
-- Just say something like "Cool! Did you know..." and share a new fun fact
+- If child says "yes", "yeah", "ok", "hmm", "no", "good", "nice", "wow" — just say "Cool!" and share next fun fact naturally
 - NEVER ask them to say more or explain more
-- Just keep the conversation flowing naturally
+- Just keep flowing naturally like a real kid conversation
 
-CONVERSATION STYLE (follow this pattern):
-1. First ask if they can see the animal
-2. Ask if they would like to BE that animal
-3. Comment on something funny/cool about the animal
-4. Share a wow fact
-5. Compare it to something the child knows (like humans, toys, houses)
-6. Share another crazy fact with a big number
-7. Ask a fun imagination question
+CONVERSATION FLOW for ${a.name}:
+1. First: point out the animal and ask if they can see it
+2. Then: ask if they'd like to BE that animal  
+3. Then: share a funny/cool fact
+4. Then: compare to something they know (humans, toys, houses)
+5. Then: share a wow number fact
+6. Then: ask a fun imagination question
+7. Then: share another surprising fact
 
-USE THIS FORMAT when sharing a fact: [FACT:write the short fact here under 15 words]
+USE THIS for facts: [FACT:short fact under 15 words]
+Example: "Oh my god giraffes are SO tall! [FACT:One giraffe equals 6 humans stacked on top!] If you were that tall what would you grab?"
 
-Example good response: "Oh wow did you know a giraffe is taller than 6 humans?! [FACT:One giraffe equals 6 humans stacked on top of each other!] If you were that tall, what would you grab from the top shelf?"
-
-Animals facts to use for ${a.name}:
+Facts about ${a.name} to use:
 ${a.facts.join("\n")}
 
-Topics to cover:
+Topics:
 ${a.topics.join("\n")}`;
 
     const messages = [
@@ -240,7 +250,7 @@ ${a.topics.join("\n")}`;
     });
     if (!res.ok) { const e = await res.json(); throw new Error(e?.error?.message || "API error"); }
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || "Wow that is so cool! What do you think about this animal?";
+    return data.choices?.[0]?.message?.content || "Wow that is so cool! What do you think?";
   }, []);
 
   const startListening = useCallback(() => {
@@ -253,32 +263,22 @@ ${a.topics.join("\n")}`;
     r.lang = "en-US";
     r.continuous = false;
     r.interimResults = true;
-    // Lower confidence threshold to catch short words
-    r.maxAlternatives = 3;
+    r.maxAlternatives = 1;
 
     r.onstart = () => { setListening(true); setMood("thinking"); };
     r.onend = () => {
       setListening(false);
-      // If speech ended but we got no result and not ended, restart
       if (!endedRef.current && !speakingRef.current) {
-        setTimeout(() => startListening(), 800);
+        setTimeout(() => startListening(), 600);
       }
     };
 
     r.onresult = async (e) => {
-      // Get the best transcript including short words
-      const transcript = Array.from(e.results)
-        .map(r => r[0].transcript)
-        .join("")
-        .trim();
-
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join("").trim();
       setSubtitle("You: " + transcript);
-
       if (e.results[e.results.length - 1].isFinal) {
         r.stop();
-        if (endedRef.current) return;
-        // Accept ALL transcripts — even single words
-        if (!transcript) return;
+        if (endedRef.current || !transcript) return;
         try {
           const newHistory = [...historyRef.current, { role: "user", parts: [{ text: transcript }] }];
           const reply = await askAI(transcript);
@@ -294,15 +294,12 @@ ${a.topics.join("\n")}`;
 
     r.onerror = (e) => {
       setListening(false);
-      if (e.error === "no-speech" && !endedRef.current && !speakingRef.current) {
-        // Restart on silence — keep listening!
-        setTimeout(() => startListening(), 500);
-      } else if (e.error !== "aborted" && !endedRef.current && !speakingRef.current) {
-        setTimeout(() => startListening(), 800);
+      if (e.error !== "aborted" && !endedRef.current && !speakingRef.current) {
+        setTimeout(() => startListening(), 700);
       }
     };
 
-    try { r.start(); } catch (e) { /* already started */ }
+    try { r.start(); } catch (e) {}
   }, [askAI, speak, showFact]);
 
   const endSession = useCallback(() => {
@@ -318,14 +315,12 @@ ${a.topics.join("\n")}`;
     setHistory([]); historyRef.current = [];
     setPhase("active"); setTimeLeft(DURATION);
     setCurrentFact(null); setSubtitle(""); setSessionFacts([]);
-
     timerRef.current = setInterval(() => {
       setTimeLeft(t => { if (t <= 1) { endSession(); return 0; } return t - 1; });
     }, 1000);
-
     try {
       const a = animalRef.current;
-      const opening = await askAI(`Start the conversation! Say hello to the child in a super excited way, point out the ${a.name} in the picture, share one wow fact using [FACT:...], and ask ONE simple fun question.`);
+      const opening = await askAI(`Start! Say hello super excitedly, mention the ${a.name} in the picture, share one wow fact using [FACT:...], and ask ONE simple fun question.`);
       const { clean, fact } = parseFact(opening);
       if (fact) showFact(fact);
       setSubtitle("Tejendra: " + clean);
@@ -346,8 +341,10 @@ ${a.topics.join("\n")}`;
   };
 
   useEffect(() => {
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    // Preload voices
+    const load = () => window.speechSynthesis.getVoices();
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
     return () => {
       clearInterval(timerRef.current);
       window.speechSynthesis.cancel();
@@ -364,7 +361,6 @@ ${a.topics.join("\n")}`;
       <div className="bg-glow bg-1" />
       <div className="bg-glow bg-2" />
 
-      {/* Header */}
       <header className="header">
         <div className="logo-wrap">
           <span className="logo-icon">🦁</span>
@@ -396,8 +392,6 @@ ${a.topics.join("\n")}`;
       </header>
 
       <main className="main">
-
-        {/* Tejendra avatar */}
         <div className={`zara-wrap ${speaking ? "is-speaking" : ""} ${listening ? "is-listening" : ""}`}>
           <div className="zara-face">{moodEmoji}</div>
           <span className="zara-name">Tejendra</span>
@@ -408,7 +402,7 @@ ${a.topics.join("\n")}`;
           )}
         </div>
 
-        {/* Animal image */}
+        {/* Animal image — fixed size, no overflow */}
         <div className="scene-wrap">
           <div className="scene-label">{animal.emoji} {animal.name}</div>
           <img src={animal.image} alt={animal.name} className="scene-img" />
@@ -420,18 +414,15 @@ ${a.topics.join("\n")}`;
           <span className="sub-text">{subtitle || `Press Start and chat with Tejendra about the ${animal.name}!`}</span>
         </div>
 
-        {/* Fact card — small rectangle, NO popup on image */}
+        {/* Fact strip — EMOJI + TEXT ONLY, no image popup, no image thumb */}
         {currentFact && (
-          <div className="fact-card">
-            <img src={animal.image} alt={animal.name} className="fact-thumb" />
-            <div className="fact-content">
-              <span className="fact-label">{animal.emoji} {animal.name} Fact</span>
-              <span className="fact-text">✨ {currentFact}</span>
-            </div>
+          <div className="fact-strip">
+            <span className="fact-emoji">{animal.emoji}</span>
+            <span className="fact-strip-text">✨ {currentFact}</span>
           </div>
         )}
 
-        {/* End screen — show all facts */}
+        {/* End screen facts */}
         {phase === "ended" && sessionFacts.length > 0 && (
           <div className="facts-summary">
             <p className="facts-title">🌟 What you learned about {animal.name}s today!</p>
@@ -443,7 +434,6 @@ ${a.topics.join("\n")}`;
           </div>
         )}
 
-        {/* Buttons */}
         <div className="controls">
           {phase === "idle" && (
             <button className="btn-start" onClick={startSession}>
@@ -474,7 +464,6 @@ ${a.topics.join("\n")}`;
             <div className="hint-chip">🌟 Fun facts!</div>
           </div>
         )}
-
       </main>
     </div>
   );
