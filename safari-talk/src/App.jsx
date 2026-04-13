@@ -1,28 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// ─── Config ───────────────────────────────────────────────────────────────
 const DURATION = 60;
 const API_KEY = import.meta.env.VITE_GROQ_KEY;
 const MODEL = "llama-3.3-70b-versatile";
 
-// ─── Safari scenes ────────────────────────────────────────────────────────
-const SCENES = [
-  {
-    url: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1200&q=85",
-    title: "The Golden Savanna",
-    description: "vast golden grasslands with elephants, giraffes, zebras and colourful birds under a bright African sky",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1534476478164-b15bbd7ca1ab?w=1200&q=85",
-    title: "Lion Kingdom",
-    description: "a majestic lion resting on a rock in the African savanna at golden hour",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1551009175-8a68da93d5f9?w=1200&q=85",
-    title: "Elephant Family",
-    description: "a family of elephants walking through the African bush with baby elephants",
-  },
-];
+// Beautiful daytime safari image with animals clearly visible
+const SCENE = {
+  url: "https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?w=1200&q=85",
+  title: "🌿 Wild Animal Safari",
+  description: "a bright sunny African safari with giraffes, zebras, elephants and colourful birds in green grasslands under a clear blue sky",
+};
 
 function fmt(s) {
   return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
@@ -38,10 +25,8 @@ function parseToolCall(text) {
   return { clean, tool };
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────
 export default function App() {
-  const [scene] = useState(SCENES[0]);
-  const [phase, setPhase] = useState("idle"); // idle | active | ended
+  const [phase, setPhase] = useState("idle");
   const [timeLeft, setTimeLeft] = useState(DURATION);
   const [highlight, setHighlight] = useState(null);
   const [funFact, setFunFact] = useState(null);
@@ -50,7 +35,7 @@ export default function App() {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState([]);
-  const [zaraMood, setZaraMood] = useState("happy"); // happy | excited | thinking
+  const [zaraMood, setZaraMood] = useState("happy");
 
   const timerRef = useRef(null);
   const recogRef = useRef(null);
@@ -58,26 +43,23 @@ export default function App() {
   const speakingRef = useRef(false);
   const historyRef = useRef([]);
 
-  // Keep historyRef in sync
   useEffect(() => { historyRef.current = history; }, [history]);
 
-  // ── Tool overlays ──────────────────────────────────────────────────────
   const showHighlight = useCallback((data) => {
     setHighlight(data);
-    setTimeout(() => setHighlight(null), 4500);
+    setTimeout(() => setHighlight(null), 4000);
   }, []);
 
   const showFact = useCallback((data) => {
     setFunFact(data);
-    setTimeout(() => setFunFact(null), 6000);
+    setTimeout(() => setFunFact(null), 5000);
   }, []);
 
-  // ── Browser TTS ───────────────────────────────────────────────────────
   const speak = useCallback((text, onDone) => {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 0.92;
-    utter.pitch = 1.25;
+    utter.pitch = 1.2;
     utter.volume = 1;
     const voices = window.speechSynthesis.getVoices();
     const v = voices.find(v => v.name.includes("Samantha")) ||
@@ -91,19 +73,18 @@ export default function App() {
     window.speechSynthesis.speak(utter);
   }, []);
 
-  // ── Gemini API ────────────────────────────────────────────────────────
-  const askGemini = useCallback(async (userMsg) => {
-    const systemPrompt = `You are Zara, the most fun and friendly AI safari guide for young children aged 4-8.
-You are looking at: ${scene.description}.
+  const askAI = useCallback(async (userMsg) => {
+    const systemPrompt = `You are Zara, a super fun and friendly AI safari guide for children aged 4-8.
+You are looking at: ${SCENE.description}.
 Rules:
 - VERY short responses — max 2 sentences only
-- Always end with a simple fun question
-- Use excitement: "Wow!", "Oh amazing!", "Yes!", "Great job!"
-- Embed tool commands naturally:
-  [HIGHLIGHT:objectname:emoji:short fun message] — use when talking about something in the image
-  [FACT:emoji:one amazing fact under 12 words] — use once or twice
-- Examples: "Wow, I can see a jeep! [HIGHLIGHT:jeep:🚙:A safari jeep for adventures!] Can you pretend to drive?"
-- Be warm, silly, encouraging. Children love you!`;
+- Always end with a simple fun question for the child
+- Use lots of excitement: "Wow!", "Amazing!", "Yes!", "Great job!", "Oh wow!"
+- Embed tool commands naturally in your response:
+  [HIGHLIGHT:objectname:emoji:short fun message] — use when mentioning something in the image
+  [FACT:emoji:one short amazing fact under 12 words] — use once or twice during conversation
+- Example: "Wow, giraffes have super long necks! [HIGHLIGHT:giraffe:🦒:Giraffes are the tallest animals!] Can you stretch your neck up high like a giraffe?"
+- Be warm, playful, and encouraging!`;
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -120,14 +101,13 @@ Rules:
         "Content-Type": "application/json",
         "Authorization": `Bearer ${API_KEY}`
       },
-      body: JSON.stringify({ model: MODEL, messages, max_tokens: 100, temperature: 1.0 }),
+      body: JSON.stringify({ model: MODEL, messages, max_tokens: 100, temperature: 0.9 }),
     });
     if (!res.ok) { const e = await res.json(); throw new Error(e?.error?.message || "API error"); }
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || "Wow, what do you see?";
-  }, [scene]);
+    return data.choices?.[0]?.message?.content || "Wow, what do you see in this picture?";
+  }, []);
 
-  // ── Speech recognition ────────────────────────────────────────────────
   const startListening = useCallback(() => {
     if (endedRef.current || speakingRef.current) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -145,27 +125,20 @@ Rules:
     r.onresult = async (e) => {
       const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
       setSubtitle("You: " + transcript);
-
       if (e.results[e.results.length - 1].isFinal) {
         r.stop();
         if (endedRef.current) return;
         try {
-          const newHistory = [...historyRef.current,
-            { role: "user", parts: [{ text: transcript }] }];
-          const reply = await askGemini(transcript);
+          const newHistory = [...historyRef.current, { role: "user", parts: [{ text: transcript }] }];
+          const reply = await askAI(transcript);
           const { clean, tool } = parseToolCall(reply);
-
           if (tool?.type === "highlight") showHighlight(tool);
           if (tool?.type === "fact") showFact(tool);
-
           setSubtitle("Zara: " + clean);
           const updated = [...newHistory, { role: "model", parts: [{ text: clean }] }];
           setHistory(updated);
           historyRef.current = updated;
-
-          speak(clean, () => {
-            if (!endedRef.current) setTimeout(() => startListening(), 600);
-          });
+          speak(clean, () => { if (!endedRef.current) setTimeout(() => startListening(), 500); });
         } catch (err) { setError(err.message); }
       }
     };
@@ -173,13 +146,12 @@ Rules:
     r.onerror = (e) => {
       setListening(false);
       if (e.error !== "no-speech" && e.error !== "aborted" && !endedRef.current && !speakingRef.current) {
-        setTimeout(() => startListening(), 1200);
+        setTimeout(() => startListening(), 1000);
       }
     };
     r.start();
-  }, [askGemini, speak, showHighlight, showFact]);
+  }, [askAI, speak, showHighlight, showFact]);
 
-  // ── End session ───────────────────────────────────────────────────────
   const endSession = useCallback(() => {
     endedRef.current = true;
     clearInterval(timerRef.current);
@@ -190,7 +162,6 @@ Rules:
     setListening(false);
   }, []);
 
-  // ── Start session ─────────────────────────────────────────────────────
   const startSession = useCallback(async () => {
     setError("");
     endedRef.current = false;
@@ -207,20 +178,21 @@ Rules:
     }, 1000);
 
     try {
-      const opening = await askGemini("Start! Greet the child super enthusiastically and ask what they see in the image. Use a HIGHLIGHT tool call right away.");
+      const opening = await askAI("Start the conversation! Greet the child warmly, mention something you see in the image, and use a HIGHLIGHT tool call immediately.");
       const { clean, tool } = parseToolCall(opening);
       if (tool?.type === "highlight") showHighlight(tool);
       if (tool?.type === "fact") showFact(tool);
       setSubtitle("Zara: " + clean);
       const h = [{ role: "model", parts: [{ text: clean }] }];
-      setHistory(h); historyRef.current = h;
+      setHistory(h);
+      historyRef.current = h;
       speak(clean, () => { if (!endedRef.current) startListening(); });
     } catch (err) {
       setError(err.message);
       setPhase("idle");
       clearInterval(timerRef.current);
     }
-  }, [askGemini, speak, startListening, endSession, showHighlight, showFact]);
+  }, [askAI, speak, startListening, endSession, showHighlight, showFact]);
 
   const reset = () => {
     endedRef.current = false;
@@ -242,12 +214,11 @@ Rules:
 
   return (
     <div className="app">
-      {/* ── Decorative blobs ── */}
-      <div className="blob blob-1" />
-      <div className="blob blob-2" />
-      <div className="blob blob-3" />
+      <div className="bg-glow bg-glow-1" />
+      <div className="bg-glow bg-glow-2" />
+      <div className="bg-glow bg-glow-3" />
 
-      {/* ── Header ── */}
+      {/* Header */}
       <header className="header">
         <div className="logo-wrap">
           <span className="logo-icon">🦁</span>
@@ -256,7 +227,6 @@ Rules:
             <span className="logo-sub">AI Adventure for Kids</span>
           </div>
         </div>
-
         <div className="header-right">
           {phase === "active" && listening && (
             <div className="listen-pill">
@@ -282,63 +252,61 @@ Rules:
         </div>
       </header>
 
-      {/* ── Main ── */}
       <main className="main">
 
-        {/* ── Zara avatar ── */}
-        <div className={`zara-avatar ${speaking ? "zara-speaking" : ""} ${listening ? "zara-listening" : ""}`}>
+        {/* Zara */}
+        <div className={`zara-wrap ${speaking ? "is-speaking" : ""} ${listening ? "is-listening" : ""}`}>
           <div className="zara-face">{zaraEmoji}</div>
-          <div className="zara-name">Zara</div>
+          <span className="zara-name">Zara</span>
           {speaking && (
             <div className="sound-waves">
-              {[...Array(4)].map((_, i) => <span key={i} className="wave" style={{ animationDelay: `${i * 0.15}s` }} />)}
+              {[...Array(5)].map((_, i) => <span key={i} className="wave" style={{ animationDelay: `${i * 0.12}s` }} />)}
             </div>
           )}
         </div>
 
-        {/* ── Scene image ── */}
+        {/* Image */}
         <div className="scene-wrap">
-          <div className="scene-label">{scene.title}</div>
-          <img src={scene.url} alt={scene.title} className="scene-img" />
+          <div className="scene-label">{SCENE.title}</div>
+          <img src={SCENE.url} alt="Safari animals" className="scene-img" />
 
-          {/* Highlight overlay */}
+          {/* Highlight popup — responsive size */}
           {highlight && (
             <div className="hl-overlay">
               <div className="hl-card">
-                <div className="hl-emoji">{highlight.emoji}</div>
-                <div className="hl-msg">{highlight.message}</div>
-                <div className="hl-name">✨ {highlight.animal} ✨</div>
+                <span className="hl-emoji">{highlight.emoji}</span>
+                <span className="hl-msg">{highlight.message}</span>
+                <span className="hl-name">✨ {highlight.animal} ✨</span>
               </div>
             </div>
           )}
 
-          {/* Fun fact */}
+          {/* Fun fact — bottom of image */}
           {funFact && (
             <div className="fact-card">
               <span className="fact-emoji">{funFact.emoji}</span>
               <span className="fact-text">{funFact.fact}</span>
             </div>
           )}
-
         </div>
 
-        {/* ── Subtitle BELOW image ── */}
-        <div className={`subtitle-box ${subtitle.startsWith("You:") ? "subtitle-user" : subtitle ? "subtitle-zara" : "subtitle-idle"}`}>
-          <span className="subtitle-avatar">{subtitle.startsWith("You:") ? "🧒" : "🦁"}</span>
-          <span className="subtitle-text">{subtitle || "Zara will start talking when you press the button!"}</span>
+        {/* Subtitle — BELOW image */}
+        <div className={`subtitle-box ${subtitle.startsWith("You:") ? "sub-user" : subtitle ? "sub-zara" : "sub-idle"}`}>
+          <span className="sub-icon">{subtitle.startsWith("You:") ? "🧒" : "🦁"}</span>
+          <span className="sub-text">{subtitle || "Press the button below and start talking to Zara!"}</span>
         </div>
 
-        {/* ── Controls ── */}
+        {/* Buttons */}
         <div className="controls">
           {phase === "idle" && (
             <button className="btn-start" onClick={startSession}>
-              <span className="btn-icon">🎙️</span>
+              <span>🎙️</span>
               <span>Start Safari Adventure!</span>
             </button>
           )}
           {phase === "active" && (
             <button className="btn-end" onClick={endSession}>
-              <span className="btn-icon">⏹</span>
+              <span>⏹</span>
               <span>End Adventure</span>
             </button>
           )}
@@ -346,14 +314,13 @@ Rules:
             <div className="ended-wrap">
               <div className="ended-stars">⭐⭐⭐</div>
               <p className="ended-title">Amazing Explorer!</p>
-              <p className="ended-sub">You chatted with Zara about the safari! 🦁</p>
+              <p className="ended-sub">You had a great safari chat with Zara! 🦁</p>
               <button className="btn-start" onClick={reset}>🔄 Play Again!</button>
             </div>
           )}
           {error && <div className="error-box">⚠️ {error}</div>}
         </div>
 
-        {/* ── Idle hint ── */}
         {phase === "idle" && (
           <div className="hint-row">
             <div className="hint-chip">🎙️ Speak freely</div>
