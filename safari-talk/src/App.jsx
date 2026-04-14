@@ -406,9 +406,9 @@ ${a.topics.join("\n")}`;
 
       <main className="main">
         {/* Tejendra avatar */}
-        <div className={`zara-wrap ${speaking ? "is-speaking" : ""} ${listening ? "is-listening" : ""}`}>
-          <div className="zara-face">{moodEmoji}</div>
-          <span className="zara-name">Tejendra</span>
+        <div className={`tejendra-wrap ${speaking ? "is-speaking" : ""} ${listening ? "is-listening" : ""}`}>
+          <div className="tejendra-face">{moodEmoji}</div>
+          <span className="tejendra-name">Tejendra</span>
           {speaking && (
             <div className="sound-waves">
               {[...Array(5)].map((_, i) => <span key={i} className="wave" style={{ animationDelay: `${i * 0.12}s` }} />)}
@@ -423,26 +423,21 @@ ${a.topics.join("\n")}`;
         </div>
 
         {/* Tejendra subtitle — always visible, fixed height */}
-        <div className="subtitle-box sub-tejendra">
+        <div className="subtitle-tejendra">
           <span className="sub-icon">😄</span>
           <span className="sub-text">
             {tejendraSays || `Press Start and chat with Tejendra about the ${animal.name}!`}
           </span>
         </div>
 
-        {/* Child subtitle — only shows when child is speaking */}
-        {childSays ? (
-          <div className="subtitle-box sub-user">
-            <span className="sub-icon">🧒</span>
-            <span className="sub-text">{childSays}</span>
-          </div>
-        ) : (
-          /* Empty placeholder to prevent layout jump */
-          <div className="subtitle-placeholder" />
-        )}
+        {/* Child subtitle — always in DOM, CSS visibility = no layout jump */}
+        <div className={`subtitle-child ${childSays ? "visible" : ""}`}>
+          <span className="sub-icon">🧒</span>
+          <span className="sub-text">{childSays || "..."}</span>
+        </div>
 
         {/* Fact strip — always reserves space to prevent jumping */}
-        <div className={`fact-strip ${currentFact ? "fact-visible" : "fact-hidden"}`}>
+        <div className={`fact-strip ${currentFact ? "visible" : "hidden"}`}>
           <span className="fact-emoji">{animal.emoji}</span>
           <span className="fact-strip-text">✨ {currentFact || "..."}</span>
         </div>
